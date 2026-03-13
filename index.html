@@ -3,96 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J.A.R.V.I.S. | NÚCLEO STARK</title>
+    <title>J.A.R.V.I.S. | ONLINE</title>
     <style>
-        body { background: #000; color: #00f2ff; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .mainframe { width: 450px; border: 2px solid #00f2ff; padding: 25px; border-radius: 20px; background: #000; box-shadow: 0 0 30px rgba(0, 242, 255, 0.4); border: 1px solid rgba(0, 242, 255, 0.5); }
-        #chat-log { height: 350px; overflow-y: auto; margin-bottom: 15px; padding: 10px; border-bottom: 1px solid #111; font-size: 15px; color: white; }
-        .input-area { display: flex; gap: 10px; }
-        input { flex: 1; background: #111; border: 1px solid #00f2ff; color: white; padding: 12px; border-radius: 30px; outline: none; }
-        button { background: #00f2ff; border: none; padding: 10px 25px; border-radius: 30px; font-weight: bold; cursor: pointer; color: black; }
-        .jarvis-t { color: #00f2ff; font-weight: bold; text-shadow: 0 0 5px #00f2ff; }
-        .system-msg { color: #555; font-size: 12px; margin-bottom: 10px; }
+        body { background: #000; color: #00f2ff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .mainframe { width: 400px; border: 2px solid #00f2ff; padding: 20px; border-radius: 15px; background: #000; box-shadow: 0 0 20px #00f2ff; }
+        #chat-log { height: 300px; overflow-y: auto; margin-bottom: 10px; font-size: 14px; }
+        .input-area { display: flex; gap: 5px; }
+        input { flex: 1; background: #111; border: 1px solid #00f2ff; color: #fff; padding: 10px; border-radius: 20px; outline: none; }
+        button { background: #00f2ff; border: none; padding: 10px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        .jarvis { color: #00f2ff; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="mainframe">
-    <h2 style="text-align: center; letter-spacing: 5px;">J.A.R.V.I.S.</h2>
+    <h3 style="text-align:center;">J.A.R.V.I.S.</h3>
     <div id="chat-log">
-        <div class="system-msg">SISTEMA: Alexander, enlace satelital verificado.</div>
+        <div><span class="jarvis">SISTEMA:</span> Alexander, núcleo sincronizado. ¿Qué desea?</div>
     </div>
     <div class="input-area">
-        <input type="text" id="userInput" placeholder="Escriba aquí, señor...">
-        <button id="sendBtn">ENVIAR</button>
+        <input type="text" id="userInput" placeholder="Habla con Jarvis...">
+        <button onclick="comunicar()">ENVIAR</button>
     </div>
 </div>
 
 <script>
-    // Tu clave nueva que ya tiene 5 horas de vida
-    const API_KEY = "AIzaSyDUif3Vd6Z6ii3w2cRvCQjgvTxdvb71iU0";
+    // TU LLAVE (Asegúrate de que no tenga espacios al final)
+    const KEY = "AIzaSyDUif3Vd6Z6ii3w2cRvCQjgvTxdvb71iU0";
+    
+    // RUTA 2026: Usamos v1beta y el nombre completo del modelo
+    const URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${KEY}`;
 
-    async function enviar() {
+    async function comunicar() {
         const input = document.getElementById('userInput');
         const log = document.getElementById('chat-log');
-        const prompt = input.value.trim();
-        
-        if (!prompt) return;
+        const msg = input.value.trim();
+        if(!msg) return;
 
-        log.innerHTML += `<div style="margin-bottom:10px;"><b>Alexander:</b> ${prompt}</div>`;
+        log.innerHTML += `<div><b>Tú:</b> ${msg}</div>`;
         input.value = "";
-        log.scrollTop = log.scrollHeight;
-
-        // ESTA ES LA URL DE PRODUCCIÓN QUE NO FALLA EN 2026
-        // He quitado el 'v1beta' y he puesto 'v1' con el nombre de modelo simple
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
         try {
-            const response = await fetch(url, {
+            const response = await fetch(URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    contents: [{
-                        parts: [{ text: "Eres J.A.R.V.I.S., la IA de Tony Stark. Responde a Alexander de forma breve y tecnológica: " + prompt }]
-                    }]
+                    contents: [{ parts: [{ text: "Responde muy breve como JARVIS de Iron Man: " + msg }] }]
                 })
             });
 
             const data = await response.json();
 
             if (data.error) {
-                // Si el error es el mismo, intentamos una ruta de emergencia automática
-                log.innerHTML += `<div style="color:orange; font-size:12px;">[SISTEMA]: Reintentando conexión alterna...</div>`;
-                reintentoEmergencia(prompt);
+                log.innerHTML += `<div style="color:orange;">[ERROR]: ${data.error.message}</div>`;
             } else {
-                const text = data.candidates[0].content.parts[0].text;
-                log.innerHTML += `<div style="margin-top:10px;"><span class="jarvis-t">J.A.R.V.I.S.:</span> ${text}</div>`;
+                const respuesta = data.candidates[0].content.parts[0].text;
+                log.innerHTML += `<div><span class="jarvis">J.A.R.V.I.S.:</span> ${respuesta}</div>`;
             }
-        } catch (err) {
-            log.innerHTML += `<div style="color:red; font-size:12px;">[SISTEMA]: Error de enlace.</div>`;
+        } catch (e) {
+            log.innerHTML += `<div style="color:red;">[ERROR DE ENLACE]</div>`;
         }
         log.scrollTop = log.scrollHeight;
     }
-
-    async function reintentoEmergencia(prompt) {
-        // Ruta de respaldo total
-        const url_respaldo = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`;
-        try {
-            const response = await fetch(url_respaldo, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contents: [{ parts: [{ text: "Responde como JARVIS: " + prompt }] }] })
-            });
-            const data = await response.json();
-            const text = data.candidates[0].content.parts[0].text;
-            document.getElementById('chat-log').innerHTML += `<div style="margin-top:10px;"><span class="jarvis-t">J.A.R.V.I.S.:</span> ${text}</div>`;
-        } catch (e) {
-            document.getElementById('chat-log').innerHTML += `<div style="color:orange; font-size:12px;">[SISTEMA]: Google sigue sin reconocer el modelo. Verifique si activó 'Gemini API' en Google Cloud.</div>`;
-        }
-    }
-
-    document.getElementById('sendBtn').onclick = enviar;
-    document.getElementById('userInput').onkeypress = (e) => { if (e.key === 'Enter') enviar(); };
+    
+    // Para enviar con Enter
+    document.getElementById('userInput').onkeypress = (e) => { if(e.key === 'Enter') comunicar(); };
 </script>
 
 </body>
