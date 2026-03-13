@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>J.A.R.V.I.S. | PROTOCOLO STARK</title>
+    <style>
+        body { background: #000; color: #00f2ff; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .mainframe { width: 450px; border: 2px solid #00f2ff; padding: 25px; border-radius: 20px; background: #000; box-shadow: 0 0 30px rgba(0, 242, 255, 0.4); }
+        #chat-log { height: 350px; overflow-y: auto; margin-bottom: 15px; padding: 10px; border-bottom: 1px solid #111; font-size: 15px; color: white; }
+        .input-area { display: flex; gap: 10px; }
+        input { flex: 1; background: #111; border: 1px solid #00f2ff; color: white; padding: 12px; border-radius: 30px; outline: none; }
+        button { background: #00f2ff; border: none; padding: 10px 20px; border-radius: 30px; font-weight: bold; cursor: pointer; color: black; }
+        .jarvis-t { color: #00f2ff; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="mainframe">
+    <h2 style="text-align: center; letter-spacing: 3px;">J.A.R.V.I.S.</h2>
+    <div id="chat-log">
+        <div><span class="jarvis-t">SISTEMA:</span> Alexander, he reconfigurado el acceso. Intente de nuevo, señor.</div>
+    </div>
+    <div class="input-area">
+        <input type="text" id="userInput" placeholder="Escriba aquí...">
+        <button id="sendBtn">ENVIAR</button>
+    </div>
+</div>
+
+<script>
+    const API_KEY = "AIzaSyDUif3Vd6Z6ii3w2cRvCQjgvTxdvb71iU0";
+
+    async function enviar() {
+        const input = document.getElementById('userInput');
+        const log = document.getElementById('chat-log');
+        const prompt = input.value.trim();
+        if (!prompt) return;
+
+        log.innerHTML += `<div><b>Alexander:</b> ${prompt}</div>`;
+        input.value = "";
+
+        // LISTA DE "MOTORES" A PROBAR (Google está cambiando los nombres)
+        const modelosAProbar = [
+            "gemini-1.5-flash",
+            "gemini-1.5-pro",
+            "gemini-pro"
+        ];
+
+        let exito = false;
+
+        for (let modelo of modelosAProbar) {
+            if (exito) break;
+
+            try {
+                // Probamos con v1 que es la de producción
+                const url = `https://generativelanguage.googleapis.com/v1/models/${modelo}:generateContent?key=${API_KEY}`;
+                
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: "Responde como JARVIS de Iron Man a Alexander: " + prompt }] }]
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!data.error) {
+                    const text = data.candidates[0].content.parts[0].text;
+                    log.innerHTML += `<div style="margin-top:10px;"><span class="jarvis-t">J.A.R.V.I.S.:</span> ${text}</div>`;
+                    exito = true;
+                } else {
+                    console.log(`Modelo ${modelo} falló, probando el siguiente...`);
+                }
+            } catch (err) {
+                console.error("Error de red");
+            }
+        }
+
+        if (!exito) {
+            log.innerHTML += `<div style="color:orange; margin-top:10px;">[SISTEMA]: Google está tardando en activar su llave. Espere 2 minutos e intente de nuevo.</div>`;
+        }
+        
+        log.scrollTop = log.scrollHeight;
+    }
+
+    document.getElementById('sendBtn').onclick = enviar;
+    document.getElementById('userInput').onkeypress = (e) => { if (e.key === 'Enter') enviar(); };
+</script>
+
+</body>
+</html>
