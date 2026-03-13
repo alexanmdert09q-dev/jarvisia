@@ -2,72 +2,82 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J.A.R.V.I.S. | ONLINE</title>
+    <title>J.A.R.V.I.S. | PROTOCOLO DE REDUNDANCIA</title>
     <style>
-        body { background: #000; color: #00f2ff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .mainframe { width: 400px; border: 2px solid #00f2ff; padding: 20px; border-radius: 15px; background: #000; box-shadow: 0 0 20px #00f2ff; }
-        #chat-log { height: 300px; overflow-y: auto; margin-bottom: 10px; font-size: 14px; }
-        .input-area { display: flex; gap: 5px; }
-        input { flex: 1; background: #111; border: 1px solid #00f2ff; color: #fff; padding: 10px; border-radius: 20px; outline: none; }
-        button { background: #00f2ff; border: none; padding: 10px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; }
-        .jarvis { color: #00f2ff; font-weight: bold; }
+        body { background: #000; color: #00f2ff; font-family: 'Courier New', monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .terminal { width: 450px; border: 2px solid #00f2ff; padding: 25px; background: rgba(0, 5, 10, 0.95); box-shadow: 0 0 25px #00f2ff66; border-radius: 10px; }
+        #chat { height: 350px; overflow-y: auto; margin-bottom: 15px; border-bottom: 1px solid #004444; padding: 10px; }
+        .input-group { display: flex; gap: 10px; }
+        input { flex: 1; background: #000; border: 1px solid #00f2ff; color: #fff; padding: 10px; outline: none; }
+        button { background: #00f2ff; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; }
+        .jarvis-label { color: #00f2ff; font-weight: bold; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
-<div class="mainframe">
-    <h3 style="text-align:center;">J.A.R.V.I.S.</h3>
-    <div id="chat-log">
-        <div><span class="jarvis">SISTEMA:</span> Alexander, núcleo sincronizado. ¿Qué desea?</div>
+<div class="terminal">
+    <h3 style="text-align: center; letter-spacing: 4px;">J.A.R.V.I.S.</h3>
+    <div id="chat">
+        <div style="color: #444;">[SISTEMA]: Enrutando vía servidor seguro...</div>
+        <div><span class="jarvis-label">J.A.R.V.I.S.:</span> Alexander, el sistema está en espera. ¿Qué desea, señor?</div>
     </div>
-    <div class="input-area">
-        <input type="text" id="userInput" placeholder="Habla con Jarvis...">
-        <button onclick="comunicar()">ENVIAR</button>
+    <div class="input-group">
+        <input type="text" id="userInput" placeholder="Escriba aquí..." autocomplete="off">
+        <button onclick="ejecutar()">ENVIAR</button>
     </div>
 </div>
 
 <script>
-    // TU LLAVE (Asegúrate de que no tenga espacios al final)
     const KEY = "AIzaSyDUif3Vd6Z6ii3w2cRvCQjgvTxdvb71iU0";
     
-    // RUTA 2026: Usamos v1beta y el nombre completo del modelo
-    const URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${KEY}`;
+    // Lista de rutas posibles (Google está cambiando esto constantemente)
+    const rutas = [
+        `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${KEY}`
+    ];
 
-    async function comunicar() {
+    async function ejecutar() {
         const input = document.getElementById('userInput');
-        const log = document.getElementById('chat-log');
-        const msg = input.value.trim();
-        if(!msg) return;
+        const log = document.getElementById('chat');
+        const prompt = input.value.trim();
+        if(!prompt) return;
 
-        log.innerHTML += `<div><b>Tú:</b> ${msg}</div>`;
+        log.innerHTML += `<div style="margin-top:10px;"><b>Alexander:</b> ${prompt}</div>`;
         input.value = "";
+        log.scrollTop = log.scrollHeight;
 
-        try {
-            const response = await fetch(URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: "Responde muy breve como JARVIS de Iron Man: " + msg }] }]
-                })
-            });
+        let respondido = false;
 
-            const data = await response.json();
+        for (let url of rutas) {
+            if (respondido) break;
+            try {
+                const res = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: "Eres Jarvis de Iron Man. Responde breve a Alexander: " + prompt }] }]
+                    })
+                });
 
-            if (data.error) {
-                log.innerHTML += `<div style="color:orange;">[ERROR]: ${data.error.message}</div>`;
-            } else {
-                const respuesta = data.candidates[0].content.parts[0].text;
-                log.innerHTML += `<div><span class="jarvis">J.A.R.V.I.S.:</span> ${respuesta}</div>`;
+                const data = await res.json();
+                
+                if (!data.error && data.candidates) {
+                    const text = data.candidates[0].content.parts[0].text;
+                    log.innerHTML += `<div style="margin-top:10px;"><span class="jarvis-label">J.A.R.V.I.S.:</span> ${text}</div>`;
+                    respondido = true;
+                }
+            } catch (e) {
+                console.log("Error en ruta, intentando la siguiente...");
             }
-        } catch (e) {
-            log.innerHTML += `<div style="color:red;">[ERROR DE ENLACE]</div>`;
+        }
+
+        if (!respondido) {
+            log.innerHTML += `<div style="color:orange; margin-top:10px;">[SISTEMA]: Google no reconoce el modelo actual. Probablemente la cuota gratuita de su llave se agotó por hoy o su región requiere verificación de identidad.</div>`;
         }
         log.scrollTop = log.scrollHeight;
     }
-    
-    // Para enviar con Enter
-    document.getElementById('userInput').onkeypress = (e) => { if(e.key === 'Enter') comunicar(); };
+
+    document.getElementById('userInput').onkeypress = (e) => { if(e.key === 'Enter') ejecutar(); };
 </script>
 
 </body>
