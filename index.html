@@ -2,82 +2,71 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>J.A.R.V.I.S. | PROTOCOLO DE REDUNDANCIA</title>
+    <title>J.A.R.V.I.S. | NÚCLEO FINAL</title>
     <style>
         body { background: #000; color: #00f2ff; font-family: 'Courier New', monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .terminal { width: 450px; border: 2px solid #00f2ff; padding: 25px; background: rgba(0, 5, 10, 0.95); box-shadow: 0 0 25px #00f2ff66; border-radius: 10px; }
-        #chat { height: 350px; overflow-y: auto; margin-bottom: 15px; border-bottom: 1px solid #004444; padding: 10px; }
+        .terminal { width: 450px; border: 2px solid #00f2ff; padding: 25px; background: rgba(0, 5, 10, 0.95); box-shadow: 0 0 20px #00f2ff; border-radius: 10px; }
+        #chat { height: 350px; overflow-y: auto; margin-bottom: 15px; padding: 10px; border-bottom: 1px solid #111; }
         .input-group { display: flex; gap: 10px; }
         input { flex: 1; background: #000; border: 1px solid #00f2ff; color: #fff; padding: 10px; outline: none; }
         button { background: #00f2ff; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; }
-        .jarvis-label { color: #00f2ff; font-weight: bold; text-transform: uppercase; }
+        .jarvis { color: #00f2ff; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="terminal">
-    <h3 style="text-align: center; letter-spacing: 4px;">J.A.R.V.I.S.</h3>
+    <h3 style="text-align: center;">J.A.R.V.I.S. STARK INDUSTRIES</h3>
     <div id="chat">
-        <div style="color: #444;">[SISTEMA]: Enrutando vía servidor seguro...</div>
-        <div><span class="jarvis-label">J.A.R.V.I.S.:</span> Alexander, el sistema está en espera. ¿Qué desea, señor?</div>
+        <div style="color: #444;">[SISTEMA]: Reintentando con modelo Flash-Latest...</div>
     </div>
     <div class="input-group">
-        <input type="text" id="userInput" placeholder="Escriba aquí..." autocomplete="off">
-        <button onclick="ejecutar()">ENVIAR</button>
+        <input type="text" id="userInput" placeholder="Escriba aquí, Alexander..." autocomplete="off">
+        <button onclick="enviar()">ENVIAR</button>
     </div>
 </div>
 
 <script>
-    const KEY = "AIzaSyDUif3Vd6Z6ii3w2cRvCQjgvTxdvb71iU0";
+    const API_KEY = "AIzaSyDUif3Vd6Z6ii3w2cRvCQjgvTxdvb71iU0";
     
-    // Lista de rutas posibles (Google está cambiando esto constantemente)
-    const rutas = [
-        `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${KEY}`,
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${KEY}`
-    ];
+    // CAMBIO CLAVE: Usamos 'gemini-1.5-flash-latest' que es el nombre oficial actual
+    const URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
 
-    async function ejecutar() {
+    async function enviar() {
         const input = document.getElementById('userInput');
         const log = document.getElementById('chat');
         const prompt = input.value.trim();
         if(!prompt) return;
 
-        log.innerHTML += `<div style="margin-top:10px;"><b>Alexander:</b> ${prompt}</div>`;
+        log.innerHTML += `<div><b>Alexander:</b> ${prompt}</div>`;
         input.value = "";
-        log.scrollTop = log.scrollHeight;
 
-        let respondido = false;
+        try {
+            const response = await fetch(URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: "Responde como JARVIS de Iron Man: " + prompt }] }]
+                })
+            });
 
-        for (let url of rutas) {
-            if (respondido) break;
-            try {
-                const res = await fetch(url, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: "Eres Jarvis de Iron Man. Responde breve a Alexander: " + prompt }] }]
-                    })
-                });
+            const data = await response.json();
 
-                const data = await res.json();
-                
-                if (!data.error && data.candidates) {
-                    const text = data.candidates[0].content.parts[0].text;
-                    log.innerHTML += `<div style="margin-top:10px;"><span class="jarvis-label">J.A.R.V.I.S.:</span> ${text}</div>`;
-                    respondido = true;
-                }
-            } catch (e) {
-                console.log("Error en ruta, intentando la siguiente...");
+            if (data.error) {
+                // Si sale error, mostramos el mensaje REAL de Google para no adivinar
+                log.innerHTML += `<div style="color:red;">[ERROR GOOGLE]: ${data.error.message}</div>`;
+                console.log(data.error);
+            } else {
+                const text = data.candidates[0].content.parts[0].text;
+                log.innerHTML += `<div style="margin-top:10px;"><span class="jarvis">J.A.R.V.I.S.:</span> ${text}</div>`;
             }
-        }
-
-        if (!respondido) {
-            log.innerHTML += `<div style="color:orange; margin-top:10px;">[SISTEMA]: Google no reconoce el modelo actual. Probablemente la cuota gratuita de su llave se agotó por hoy o su región requiere verificación de identidad.</div>`;
+        } catch (e) {
+            log.innerHTML += `<div style="color:red;">[SISTEMA]: Error de conexión física.</div>`;
         }
         log.scrollTop = log.scrollHeight;
     }
 
-    document.getElementById('userInput').onkeypress = (e) => { if(e.key === 'Enter') ejecutar(); };
+    document.getElementById('userInput').onkeypress = (e) => { if(e.key === 'Enter') enviar(); };
 </script>
 
 </body>
